@@ -1,7 +1,3 @@
----
-description: 当用户输入中明确提及 MVU 时, 你应该参考本文件
-alwaysApply: false
----
 # MVU 角色卡文件夹
 
 MVU 角色卡文件夹提供了一种存储酒馆角色卡内容的文件结构:
