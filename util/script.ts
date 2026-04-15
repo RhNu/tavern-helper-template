@@ -1,4 +1,4 @@
-import iframe_srcdoc from './iframe_srcdoc.html';
+import iframe_srcdoc from './iframe_srcdoc.html?raw';
 
 export async function loadReadme(url: string): Promise<boolean> {
   const readme = await fetch(url);

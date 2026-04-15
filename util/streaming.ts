@@ -1,5 +1,6 @@
 import { createScriptIdDiv, createScriptIdIframe, teleportStyle } from '@util/script';
-import type { App, Reactive } from 'vue';
+import { createContext, createElement, useContext, type ReactNode } from 'react';
+import { createRoot, type Root } from 'react-dom/client';
 import { uuidv4 } from './common';
 
 /**
@@ -14,9 +15,17 @@ export type StreamingMessageContext = {
   during_streaming: boolean;
 };
 
+const streaming_message_context = createContext<StreamingMessageContext | null>(null);
+
 export function injectStreamingMessageContext(): Readonly<StreamingMessageContext> {
-  return readonly(inject('streaming_message_context')!);
+  const context = useContext(streaming_message_context);
+  if (!context) {
+    throw new Error(`injectStreamingMessageContext must be used inside mountStreamingMessages provider.`);
+  }
+  return context;
 }
+
+export const useStreamingMessageContext = injectStreamingMessageContext;
 
 /**
  * 将组件作为流式楼层界面挂载到酒馆各个楼层, 替换掉酒馆原生的楼层正文显示.
@@ -39,12 +48,19 @@ export function injectStreamingMessageContext(): Readonly<StreamingMessageContex
  * @returns 卸载流式楼层界面的函数
  */
 export function mountStreamingMessages(
-  creator: () => App,
+  creator: () => ReactNode,
   options: { host?: 'iframe' | 'div'; filter?: (message_id: number, message: string) => boolean; prefix?: string } = {},
 ): { unmount: () => void } {
   const { host = 'iframe', filter, prefix = uuidv4() } = options;
 
-  const states: Map<number, { app: App; data: Reactive<StreamingMessageContext>; destroy: () => void }> = new Map();
+  type State = {
+    data: StreamingMessageContext;
+    root: Root | null;
+    render: () => void;
+    destroy: () => void;
+  };
+
+  const states: Map<number, State> = new Map();
   let has_stoped = false;
 
   const destroyIfInvalid = (message_id: number): boolean => {
@@ -83,8 +99,12 @@ export function mountStreamingMessages(
     if ($host.length > 0) {
       const state = states.get(message_id);
       if (state) {
-        state.data.message = message;
-        state.data.during_streaming = Boolean(stream_message);
+        state.data = {
+          ...state.data,
+          message,
+          during_streaming: Boolean(stream_message),
+        };
+        state.render();
         return;
       }
     }
@@ -109,21 +129,57 @@ export function mountStreamingMessages(
       .attr('id', `${prefix}-${message_id}`)
       .appendTo($mes_streaming);
 
-    const data = reactive<StreamingMessageContext>({
+    const react_node = creator();
+    const data: StreamingMessageContext = {
       prefix,
       host_id: `${prefix}-${message_id}`,
       message_id,
       message,
       during_streaming: Boolean(stream_message),
-    });
-    const app = creator().provide('streaming_message_context', data);
+    };
+
+    const style_destroy_list: Array<() => void> = [];
+    const state: State = {
+      data,
+      root: null,
+      render: () => {
+        if (!state.root) {
+          return;
+        }
+        state.root.render(createElement(streaming_message_context.Provider, { value: state.data }, react_node));
+      },
+      destroy: () => {
+        const $th_streaming = $message_element.find('.TH-streaming');
+        if ($th_streaming.length > 0) {
+          $th_streaming.removeClass('hidden!');
+        } else {
+          $mes_text.removeClass('hidden!');
+        }
+
+        state.root?.unmount();
+        $host.remove();
+        if ($mes_streaming.children().length === 0) {
+          $mes_streaming.remove();
+        }
+        observer.disconnect();
+        style_destroy_list.forEach(destroy => destroy());
+        states.delete(message_id);
+      },
+    };
+
     if (host === 'iframe') {
       $host.on('load', function (this: HTMLIFrameElement) {
-        teleportStyle(this.contentDocument!.head);
-        app.mount(this.contentDocument!.body);
+        if (!this.contentDocument?.body || !this.contentDocument?.head) {
+          return;
+        }
+
+        style_destroy_list.push(teleportStyle(this.contentDocument.head).destroy);
+        state.root = createRoot(this.contentDocument.body);
+        state.render();
       });
     } else {
-      app.mount($host[0]);
+      state.root = createRoot($host[0]);
+      state.render();
     }
 
     const observer = new MutationObserver(() => {
@@ -139,26 +195,7 @@ export function mountStreamingMessages(
     });
     observer.observe($mes_text[0] as HTMLElement, { childList: true });
 
-    states.set(message_id, {
-      app,
-      data,
-      destroy: () => {
-        const $th_streaming = $message_element.find('.TH-streaming');
-        if ($th_streaming.length > 0) {
-          $th_streaming.removeClass('hidden!');
-        } else {
-          $mes_text.removeClass('hidden!');
-        }
-
-        app.unmount();
-        $host.remove();
-        if ($mes_streaming.children().length === 0) {
-          $mes_streaming.remove();
-        }
-        observer.disconnect();
-        states.delete(message_id);
-      },
-    });
+    states.set(message_id, state);
   };
 
   const renderAllMessage = async (options: { destroy_all?: boolean; trigger_event?: boolean } = {}) => {
@@ -227,7 +264,7 @@ export function mountStreamingMessages(
       if ($th_streaming.length > 0) {
         $th_streaming.removeClass('hidden!');
       } else {
-        $('chat').find('.mes_text').removeClass('hidden!');
+        $('#chat').find('.mes_text').removeClass('hidden!');
       }
       states.forEach(({ destroy }) => destroy());
       stop_list.forEach(stop => stop());

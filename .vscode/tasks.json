@@ -2,29 +2,13 @@
   "version": "2.0.0",
   "tasks": [
     {
-      "label": "开始监听源代码并编译",
+      "label": "构建源代码",
       "type": "shell",
       "command": "pnpm",
       "args": [
-        "watch"
+        "build:dev"
       ],
-      "problemMatcher": [
-        {
-          "pattern": [
-            {
-              "regexp": ".*",
-              "file": 1,
-              "location": 2,
-              "message": 3
-            }
-          ],
-          "background": {
-            "activeOnStart": true,
-            "beginsPattern": ".*",
-            "endsPattern": "webpack (?:\\d+\\.){2}\\d+ compiled"
-          }
-        }
-      ],
+      "problemMatcher": [],
       "group": {
         "kind": "build",
         "isDefault": true
@@ -37,13 +21,12 @@
         "showReuseMessage": true,
         "clear": true,
         "revealProblems": "never"
-      },
-      "isBackground": true
+      }
     },
     {
       "label": "开始任务",
       "dependsOn": [
-        "开始监听源代码并编译",
+        "构建源代码",
       ]
     },
     {

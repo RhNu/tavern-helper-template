@@ -22,11 +22,6 @@ declare module '*.yaml' {
   const content: any;
   export default content;
 }
-declare module '*.vue' {
-  import { DefineComponent } from 'vue';
-  const component: DefineComponent;
-  export default component;
-}
 
 declare const YAML: typeof import('yaml');
 

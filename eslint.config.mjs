@@ -3,12 +3,9 @@ import tsParser from '@typescript-eslint/parser';
 import eslintConfigPrettier from 'eslint-config-prettier';
 import eslintPluginBetterTailwindcss from 'eslint-plugin-better-tailwindcss';
 import importx from 'eslint-plugin-import-x';
-import pinia from 'eslint-plugin-pinia';
-import vue from 'eslint-plugin-vue';
 import { globalIgnores } from 'eslint/config';
 import globals from 'globals';
 import ts from 'typescript-eslint';
-import vueParser from 'vue-eslint-parser';
 
 /** @type {import('@typescript-eslint/utils').TSESLint.FlatConfig.ConfigFile} */
 export default [
@@ -16,10 +13,8 @@ export default [
   ...ts.configs.recommended,
   importx.flatConfigs.recommended,
   importx.flatConfigs.typescript,
-  ...vue.configs['flat/recommended'],
-  pinia.configs['recommended-flat'],
   {
-    files: ['src/**/*.{html,vue,js,ts}'],
+    files: ['src/**/*.{html,js,jsx,ts,tsx}', 'util/**/*.{js,jsx,ts,tsx}'],
     plugins: {
       'better-tailwindcss': eslintPluginBetterTailwindcss,
     },
@@ -37,10 +32,10 @@ export default [
     },
   },
   {
+    files: ['**/*.{js,jsx,mjs,ts,tsx}'],
     languageOptions: {
-      parser: vueParser,
+      parser: tsParser,
       parserOptions: {
-        parser: tsParser,
         ecmaVersion: 'latest',
         sourceType: 'module',
       },
@@ -67,15 +62,27 @@ export default [
       'no-undef': 'off',
       'no-unused-vars': 'off',
       'no-var': 'error',
-      'pinia/no-duplicate-store-ids': 'off',
-      'pinia/require-setup-store-properties-export': 'off',
       'prefer-const': 'warn',
-      'vue/multi-word-component-names': 'off',
       yoda: 'error',
       '@typescript-eslint/no-explicit-any': 'off',
       '@typescript-eslint/no-unused-vars': 'off',
     },
   },
+  {
+    files: ['scripts/**/*.mjs'],
+    rules: {
+      'import-x/no-nodejs-modules': 'off',
+    },
+  },
   eslintConfigPrettier,
-  globalIgnores(['dist/**', 'node_modules/**', 'eslint.config.mjs', 'postcss.config.js', 'webpack.config.ts']),
+  globalIgnores([
+    'dist/**',
+    'node_modules/**',
+    '示例/**',
+    '初始模板/**',
+    'eslint.config.mjs',
+    'postcss.config.js',
+    'dump_schema.ts',
+    'tavern_sync.mjs',
+  ]),
 ];
