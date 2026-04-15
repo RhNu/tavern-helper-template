@@ -32,7 +32,59 @@ const CDN_EXTERNAL_MAPPING = {
   zod: 'https://testingcf.jsdelivr.net/npm/zod/+esm',
 };
 
+// Keep packages that share runtime singletons in the same bundle.
 const INLINE_PACKAGE_HINTS = ['react', 'pixi'];
+const REACT_RUNTIME_PACKAGE_NAMES = ['react', 'react-dom'];
+const inlinePackageDecisionCache = new Map();
+
+/**
+ * @param {string} request
+ */
+function getBarePackageName(request) {
+  if (!request || isLocalOrAliasedRequest(request)) {
+    return null;
+  }
+
+  const cleaned = request.replace(/^node:/, '');
+  if (cleaned.startsWith('@')) {
+    const segments = cleaned.split('/');
+    return segments.length >= 2 ? `${segments[0]}/${segments[1]}` : cleaned;
+  }
+
+  const [packageName] = cleaned.split('/');
+  return packageName || null;
+}
+
+/**
+ * @param {string} packageName
+ */
+function packageUsesReactRuntime(packageName) {
+  const cached = inlinePackageDecisionCache.get(packageName);
+  if (typeof cached === 'boolean') {
+    return cached;
+  }
+
+  const packageJsonPath = path.join(rootDir, 'node_modules', ...packageName.split('/'), 'package.json');
+  let shouldInline = false;
+
+  if (fs.existsSync(packageJsonPath)) {
+    try {
+      const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
+      const deps = {
+        ...packageJson.peerDependencies,
+        ...packageJson.dependencies,
+        ...packageJson.optionalDependencies,
+      };
+
+      shouldInline = REACT_RUNTIME_PACKAGE_NAMES.some(name => typeof deps?.[name] === 'string');
+    } catch (error) {
+      console.warn(`[build] Failed to inspect package metadata for '${packageName}'.`, error);
+    }
+  }
+
+  inlinePackageDecisionCache.set(packageName, shouldInline);
+  return shouldInline;
+}
 
 /**
  * @param {string} request
@@ -54,7 +106,12 @@ function isLocalOrAliasedRequest(request) {
  * @param {string} request
  */
 function shouldInlinePackageRequest(request) {
-  return INLINE_PACKAGE_HINTS.some(keyword => request.includes(keyword));
+  if (INLINE_PACKAGE_HINTS.some(keyword => request.includes(keyword))) {
+    return true;
+  }
+
+  const packageName = getBarePackageName(request);
+  return packageName ? packageUsesReactRuntime(packageName) : false;
 }
 
 /**
@@ -151,6 +208,30 @@ function collectFiles(inputDir) {
 }
 
 /**
+ * @param {string} targetDir
+ * @returns {boolean}
+ */
+function removeEmptyDirectories(targetDir) {
+  if (!fs.existsSync(targetDir) || !fs.statSync(targetDir).isDirectory()) {
+    return false;
+  }
+
+  for (const entryName of fs.readdirSync(targetDir)) {
+    const entryPath = path.join(targetDir, entryName);
+    if (fs.statSync(entryPath).isDirectory()) {
+      removeEmptyDirectories(entryPath);
+    }
+  }
+
+  if (fs.readdirSync(targetDir).length === 0) {
+    fs.rmdirSync(targetDir);
+    return true;
+  }
+
+  return false;
+}
+
+/**
  * @returns {Project[]}
  */
 function discoverProjects() {
@@ -224,6 +305,10 @@ async function buildScriptProject(project) {
     configFile: false,
     mode,
     plugins: [react()],
+    define: {
+      'process.env.NODE_ENV': JSON.stringify(mode),
+      'process.env': JSON.stringify({ NODE_ENV: mode }),
+    },
     resolve: {
       alias: resolveAlias,
     },
@@ -232,12 +317,24 @@ async function buildScriptProject(project) {
       outDir: project.outputDir,
       emptyOutDir: false,
       sourcemap: mode === 'development',
-      minify: isProduction ? 'esbuild' : false,
+      minify: isProduction ? 'terser' : false,
+      terserOptions: {
+        compress: {
+          module: true,
+          passes: 2,
+        },
+        mangle: true,
+        format: {
+          comments: false,
+          beautify: false,
+        },
+      },
       cssCodeSplit: false,
       lib: {
         entry: project.entryFile,
         formats: ['es'],
         fileName: () => 'index',
+        cssFileName: 'index',
       },
       rollupOptions: {
         external: request => shouldExternalizeScriptImport(request),
@@ -245,6 +342,7 @@ async function buildScriptProject(project) {
           entryFileNames: 'index.js',
           chunkFileNames: 'chunks/[name]-[hash].js',
           assetFileNames: 'assets/[name]-[hash][extname]',
+          compact: isProduction,
           inlineDynamicImports: true,
           manualChunks: undefined,
           paths: request => resolveExternalCdnUrl(request),
@@ -257,6 +355,65 @@ async function buildScriptProject(project) {
 /**
  * @param {Project} project
  */
+function inlineScriptProjectCss(project) {
+  const cssFiles = fs
+    .globSync('**/*.css', { cwd: project.outputDir })
+    .map(relative => path.join(project.outputDir, relative))
+    .filter(file => fs.existsSync(file));
+
+  if (cssFiles.length === 0) {
+    return;
+  }
+
+  const entryFile = path.join(project.outputDir, 'index.js');
+  if (!fs.existsSync(entryFile)) {
+    throw new Error(`[build] Missing script entry output for CSS inlining: '${project.relativeDir || '.'}'.`);
+  }
+
+  const styleKey = (project.relativeDir || 'root').replace(/[^a-zA-Z0-9_-]+/g, '_');
+  const cssText = cssFiles.map(file => fs.readFileSync(file, 'utf8')).join('\n');
+  const injectionCode = `
+;(() => {
+  if (typeof document === 'undefined' || typeof getScriptId !== 'function') {
+    return;
+  }
+  const styleKey = ${JSON.stringify(styleKey)};
+  const scriptId = getScriptId();
+  const selector = 'style[data-bundled-style="' + styleKey + '"][script_id="' + scriptId + '"]';
+  if (document.head.querySelector(selector)) {
+    return;
+  }
+  const style = document.createElement('style');
+  style.setAttribute('script_id', scriptId);
+  style.setAttribute('data-bundled-style', styleKey);
+  style.textContent = ${JSON.stringify(cssText)};
+  document.head.append(style);
+})();
+`;
+
+  fs.appendFileSync(entryFile, injectionCode, 'utf8');
+  cssFiles.forEach(file => fs.rmSync(file, { force: true }));
+}
+
+/**
+ * @param {Project} project
+ */
+function normalizeScriptProjectRuntime(project) {
+  const entryFile = path.join(project.outputDir, 'index.js');
+  if (!fs.existsSync(entryFile)) {
+    throw new Error(`[build] Missing script entry output for runtime normalization: '${project.relativeDir || '.'}'.`);
+  }
+
+  const source = fs.readFileSync(entryFile, 'utf8');
+  const normalized = source.replaceAll('process.env.NODE_ENV', JSON.stringify(mode));
+  if (normalized !== source) {
+    fs.writeFileSync(entryFile, normalized, 'utf8');
+  }
+}
+
+/**
+ * @param {Project} project
+ */
 async function buildFrontendProject(project) {
   await build({
     configFile: false,
@@ -264,6 +421,10 @@ async function buildFrontendProject(project) {
     root: project.projectRoot,
     publicDir: false,
     plugins: [react(), viteSingleFile()],
+    define: {
+      'process.env.NODE_ENV': JSON.stringify(mode),
+      'process.env': JSON.stringify({ NODE_ENV: mode }),
+    },
     resolve: {
       alias: resolveAlias,
     },
@@ -272,12 +433,24 @@ async function buildFrontendProject(project) {
       outDir: project.outputDir,
       emptyOutDir: false,
       sourcemap: false,
-      minify: isProduction ? 'esbuild' : false,
+      minify: isProduction ? 'terser' : false,
+      terserOptions: {
+        compress: {
+          module: true,
+          passes: 2,
+        },
+        mangle: true,
+        format: {
+          comments: false,
+          beautify: false,
+        },
+      },
       cssCodeSplit: false,
       assetsInlineLimit: Number.MAX_SAFE_INTEGER,
       rollupOptions: {
         input: project.htmlEntry,
         output: {
+          compact: isProduction,
           inlineDynamicImports: true,
           manualChunks: undefined,
         },
@@ -333,8 +506,11 @@ async function main() {
       await buildFrontendProject(project);
     } else {
       await buildScriptProject(project);
+      normalizeScriptProjectRuntime(project);
+      inlineScriptProjectCss(project);
     }
 
+    removeEmptyDirectories(project.outputDir);
     validateSingleFileOutput(project);
   }
 
