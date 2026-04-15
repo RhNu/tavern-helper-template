@@ -1,4 +1,4 @@
-# Acceptance Checklist (Stage 1)
+# Acceptance Checklist (Current)
 
 ## Functional
 
@@ -13,6 +13,8 @@
 - [ ] project discovery only includes `src/`
 - [ ] `.vue` file in `src` causes explicit build failure
 - [ ] nested project dirs in `src` cause explicit build failure
+- [ ] script bare-package imports are rewritten to CDN ESM URLs
+- [ ] script local/alias imports stay bundled in the single-file output
 
 ## Migration
 

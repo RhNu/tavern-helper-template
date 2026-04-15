@@ -1,4 +1,4 @@
-# Build Architecture (Stage 1)
+# Build Architecture (Current)
 
 ## Build Entry
 
@@ -22,6 +22,9 @@
   - Vite library build (ESM)
   - `inlineDynamicImports` enabled
   - Output fixed to `index.js`
+  - Bare package imports are externalized to CDN ESM URLs
+  - Local/alias/http/data imports remain bundled in project output
+  - Package requests containing `react` or `pixi` are force-inlined
 - Frontend project:
   - Vite HTML build
   - `vite-plugin-singlefile` inlines JS/CSS
@@ -45,4 +48,4 @@
 
 - watch server and sync subprocess integration
 - schema generation hook in build
-- old Webpack externals and obfuscation path
+- full parity of legacy Webpack loader/obfuscation behaviors

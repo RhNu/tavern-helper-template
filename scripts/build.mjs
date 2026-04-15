@@ -19,6 +19,74 @@ const isProduction = mode === 'production';
 
 const toPosix = value => value.split(path.sep).join('/');
 
+const CDN_SPECIAL_MAPPING = {
+  sass: 'https://jspm.dev/sass',
+};
+
+const CDN_EXTERNAL_MAPPING = {
+  jquery: 'https://testingcf.jsdelivr.net/npm/jquery/+esm',
+  lodash: 'https://testingcf.jsdelivr.net/npm/lodash/+esm',
+  showdown: 'https://testingcf.jsdelivr.net/npm/showdown/+esm',
+  toastr: 'https://testingcf.jsdelivr.net/npm/toastr/+esm',
+  yaml: 'https://testingcf.jsdelivr.net/npm/yaml/+esm',
+  zod: 'https://testingcf.jsdelivr.net/npm/zod/+esm',
+};
+
+const INLINE_PACKAGE_HINTS = ['react', 'pixi'];
+
+/**
+ * @param {string} request
+ */
+function isLocalOrAliasedRequest(request) {
+  return (
+    request.startsWith('.') ||
+    request.startsWith('/') ||
+    request.startsWith('@/') ||
+    request.startsWith('@util/') ||
+    request.startsWith('http://') ||
+    request.startsWith('https://') ||
+    request.startsWith('data:') ||
+    path.isAbsolute(request)
+  );
+}
+
+/**
+ * @param {string} request
+ */
+function shouldInlinePackageRequest(request) {
+  return INLINE_PACKAGE_HINTS.some(keyword => request.includes(keyword));
+}
+
+/**
+ * @param {string} request
+ */
+function shouldExternalizeScriptImport(request) {
+  if (!request || request.startsWith('\0')) {
+    return false;
+  }
+
+  if (isLocalOrAliasedRequest(request)) {
+    return false;
+  }
+
+  if (shouldInlinePackageRequest(request)) {
+    return false;
+  }
+
+  return true;
+}
+
+/**
+ * @param {string} request
+ */
+function resolveExternalCdnUrl(request) {
+  return (
+    CDN_SPECIAL_MAPPING[request] ??
+    CDN_EXTERNAL_MAPPING[request] ??
+    `https://testingcf.jsdelivr.net/npm/${request}/+esm`
+  );
+}
+
 const resolveAlias = [
   {
     find: /^@util$/,
@@ -172,12 +240,14 @@ async function buildScriptProject(project) {
         fileName: () => 'index',
       },
       rollupOptions: {
+        external: request => shouldExternalizeScriptImport(request),
         output: {
           entryFileNames: 'index.js',
           chunkFileNames: 'chunks/[name]-[hash].js',
           assetFileNames: 'assets/[name]-[hash][extname]',
           inlineDynamicImports: true,
           manualChunks: undefined,
+          paths: request => resolveExternalCdnUrl(request),
         },
       },
     },

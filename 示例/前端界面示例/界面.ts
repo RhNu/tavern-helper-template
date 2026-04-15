@@ -1,21 +1,29 @@
-import { createMemoryHistory, createRouter } from 'vue-router';
-import Diary from './日记.vue';
-import App from './界面.vue';
-import RoleplayOptions from './选择框.vue';
+import { createElement } from 'react';
+import { createRoot } from 'react-dom/client';
+import { createMemoryRouter, RouterProvider } from 'react-router-dom';
+import Diary from './日记';
+import RoleplayOptions from './选择框';
 
-const router = createRouter({
-  history: createMemoryHistory(),
-  routes: [
-    { path: '/日记', component: Diary },
-    {
-      path: '/选择框',
-      component: RoleplayOptions,
-      props: { message: getChatMessages(getCurrentMessageId())[0].message },
-    },
+function RoleplayOptionsPage() {
+  const message = getChatMessages(getCurrentMessageId())[0]?.message ?? '';
+  return createElement(RoleplayOptions, { message });
+}
+
+const router = createMemoryRouter(
+  [
+    { path: '/日记', element: createElement(Diary) },
+    { path: '/选择框', element: createElement(RoleplayOptionsPage) },
   ],
-});
-router.replace('/日记');
+  { initialEntries: ['/日记'] },
+);
 
 $(() => {
-  createApp(App).use(router).mount('#app');
+  const app = document.querySelector('#app');
+  if (!app) {
+    return;
+  }
+
+  const root = createRoot(app);
+  root.render(createElement(RouterProvider, { router }));
+  $(window).on('pagehide', () => root.unmount());
 });

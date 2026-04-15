@@ -1,37 +1,3 @@
-<template>
-  <div class="char-layout">
-    <div class="section-head">{{ store.data.白娅.$依存度阶段 }}</div>
-    <div class="title-grid">
-      <div v-for="(title, name) in store.data.白娅.称号" :key="name" class="title-box">
-        <span class="title-name">{{ name }}</span>
-        <div class="title-effect">{{ title.效果 }}</div>
-        <div class="title-quote">"{{ title.自我评价 }}"</div>
-      </div>
-      <div v-if="_.isEmpty(store.data.白娅.称号)" class="title-box">
-        <span class="title-name">无称号</span>
-        <div class="title-effect">当前没有生效的称号</div>
-        <div class="title-quote">"..."</div>
-      </div>
-    </div>
-
-    <div class="section-head">着装记录</div>
-    <div class="attire-list">
-      <div v-for="(description, slot) in store.data.白娅.着装" :key="slot" class="attire-item">
-        <span class="attire-slot">【{{ slot }}】</span>
-        {{ description }}
-      </div>
-    </div>
-  </div>
-</template>
-
-<script setup lang="ts">
-import _ from 'lodash';
-import { useDataStore } from '../store';
-
-const store = useDataStore();
-</script>
-
-<style lang="scss" scoped>
 .char-layout {
   display: flex;
   flex-direction: column;
@@ -106,4 +72,3 @@ const store = useDataStore();
     grid-template-columns: 1fr;
   }
 }
-</style>

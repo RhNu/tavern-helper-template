@@ -13,8 +13,7 @@
     "module": "ESNext",
     "rootDir": ".",
     "outDir": "dist",
-    "baseUrl": ".",
-    "ignoreDeprecations": "6.0",
+    "ignoreDeprecations": "5.0",
     "paths": {
       "@util/*": [
         "./util/*"
@@ -42,6 +41,8 @@
   },
   "include": [
     "@types",
+    "初始模板",
+    "示例",
     "src",
     "util",
     "*.d.ts",

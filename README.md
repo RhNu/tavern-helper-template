@@ -46,9 +46,9 @@ git update-index --skip-worktree .vscode/launch.json
 
 ### 示例文件夹
 
-当前迁移阶段仅保留 `src` 下的构建核心能力, `示例` 与 `初始模板` 默认不参与构建流程.
+`示例` 与 `初始模板` 已迁移为 React + Zustand 写法, 可直接作为参考复制.
 
-你仍可以保留这些目录作为参考资料, 但它们不会被自动打包到 `dist`.
+当前自动构建的项目发现范围仍限定在 `src/**/index.{ts,tsx,js,jsx}`, 因此这些目录默认不会被自动打包到 `dist`.
 
 #### 利用 jsdelivr 实现前端界面或脚本的自动更新
 
@@ -69,6 +69,9 @@ git update-index --skip-worktree .vscode/launch.json
 ```typescript
 import 'https://testingcf.jsdelivr.net/gh/StageDog/tavern_resource/dist/酒馆助手/场景感/index.js';
 ```
+
+脚本构建会将“裸包导入”自动改写为 jsdelivr 的 ESM URL (例如 `lodash` ->
+`https://testingcf.jsdelivr.net/npm/lodash/+esm`), 本地相对导入和 `@/`、`@util/` 导入仍会被打包进单文件产物.
 
 更多请见于[文档](https://stagedog.github.io/青空莉/工具经验/实时编写前端界面或脚本/进阶技巧).
 

@@ -1,9 +1,8 @@
 import { mountStreamingMessages } from '@util/streaming';
-import App from './App.vue';
+import { createElement } from 'react';
+import App from './App';
 
 $(() => {
-  const { unmount } = mountStreamingMessages(() => {
-    return createApp(App).use(createPinia());
-  });
+  const { unmount } = mountStreamingMessages(() => createElement(App));
   $(window).on('pagehide', () => unmount());
 });

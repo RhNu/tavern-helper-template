@@ -1,42 +1,3 @@
-<template>
-  <div class="dependency-strip">
-    <span class="dependency-label">依存度</span>
-    <div class="dependency-track">
-      <div class="dependency-fill" :style="{ width: store.data.白娅.依存度 + '%' }"></div>
-    </div>
-    <span class="dependency-value">{{ store.data.白娅.依存度 }}%</span>
-    <div class="dependency-controls">
-      <button
-        class="dependency-button"
-        :disabled="store.data.白娅.依存度 <= 0"
-        type="button"
-        @click="adjustDependency(-1)"
-      >
-        -
-      </button>
-      <button
-        class="dependency-button"
-        :disabled="store.data.白娅.依存度 >= 100"
-        type="button"
-        @click="adjustDependency(1)"
-      >
-        +
-      </button>
-    </div>
-  </div>
-</template>
-
-<script setup lang="ts">
-import { useDataStore } from '../store';
-
-const store = useDataStore();
-
-function adjustDependency(delta: number) {
-  store.data.白娅.依存度 = store.data.白娅.依存度 + delta;
-}
-</script>
-
-<style lang="scss" scoped>
 .dependency-strip {
   display: flex;
   align-items: center;
@@ -107,4 +68,3 @@ function adjustDependency(delta: number) {
   outline: 2px dashed var(--c-granite);
   outline-offset: 2px;
 }
-</style>

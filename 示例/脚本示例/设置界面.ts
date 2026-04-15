@@ -1,16 +1,17 @@
 import { createScriptIdDiv, teleportStyle } from '@util/script';
-import 界面 from './设置界面.vue';
+import { createElement } from 'react';
+import { createRoot } from 'react-dom/client';
+import 界面 from './设置界面组件';
 
 $(() => {
-  const app = createApp(界面).use(createPinia());
-
   const $app = createScriptIdDiv().appendTo('#extensions_settings2');
-  app.mount($app[0]);
+  const root = createRoot($app[0]);
+  root.render(createElement(界面));
 
   const { destroy } = teleportStyle();
 
   $(window).on('pagehide', () => {
-    app.unmount();
+    root.unmount();
     $app.remove();
     destroy();
   });

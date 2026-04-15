@@ -27,10 +27,12 @@
 - Supported:
   - Relative imports
   - Alias imports: `@/` and `@util/`
-  - Standard npm package imports that Vite can bundle
+  - Script bare-package imports externalized to jsdelivr ESM URLs
+  - Package-specific CDN mapping when configured (for example `sass`)
   - `?raw` for text/html style raw import when needed
 - Not guaranteed:
-  - Legacy externals to global/CDN behavior from old Webpack config
+  - Full parity of old Webpack externals/loader behavior
+  - Packages containing `react`/`pixi` keywords are intentionally kept bundled
 
 ## Output Contract
 

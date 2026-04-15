@@ -1,8 +1,14 @@
-import { createApp } from 'vue';
-import App from './App.vue';
+import { createElement } from 'react';
+import { createRoot } from 'react-dom/client';
+import App from './App';
 
 $(() => {
-  const app = createApp(App).use(createPinia());
-  app.mount('#app');
-  $(window).on('pagehide', () => app.unmount());
+  const app = document.querySelector('#app');
+  if (!app) {
+    return;
+  }
+
+  const root = createRoot(app);
+  root.render(createElement(App));
+  $(window).on('pagehide', () => root.unmount());
 });

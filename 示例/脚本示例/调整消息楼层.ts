@@ -1,3 +1,10 @@
+const dedent = (template: string) =>
+  template
+    .split('\n')
+    .map(line => line.trim())
+    .filter(line => line.length > 0)
+    .join('\n');
+
 $(async () => {
   const message_id = getLastMessageId();
   if (message_id !== 0) {
