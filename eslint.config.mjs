@@ -78,8 +78,7 @@ export default [
   globalIgnores([
     'dist/**',
     'node_modules/**',
-    '示例/**',
-    '初始模板/**',
+    'examples/**',
     'eslint.config.mjs',
     'postcss.config.js',
     'dump_schema.ts',
