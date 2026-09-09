@@ -101,7 +101,7 @@ import 'https://testingcf.jsdelivr.net/gh/StageDog/tavern_resource/dist/酒馆�
 
 - 自动打包 `src/scripts` 中的浏览器端项目到 `dist/scripts`, 并打包 `src/plugins` 中的服务端插件到
   `dist/plugins`, 再自动递增版本号从而让 jsdelivr 更快更新缓存.
-- 如果配置了 Cloudflare R2 所需的仓库 Secrets 和变量, 会同步 `dist/` 但明确排除 `dist/plugins/`.
+- 如果配置了 Cloudflare R2 所需的仓库 Secrets 和变量, 会以 `dist/scripts/` 为根目录同步浏览器端产物, 不会上传 `dist/plugins/`.
 
 启用 Cloudflare R2 同步时, 需要在仓库 `Settings -> Secrets and variables -> Actions` 中添加以下 Secrets:
 
