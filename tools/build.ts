@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { performance } from 'node:perf_hooks';
+import chokidar from 'chokidar';
 import { buildBrowserProject } from './build/browser.ts';
 import {
   cleanupStaleOutputs,
@@ -22,7 +23,7 @@ import {
   selectProjects,
 } from './build/discovery.ts';
 import { createLogger } from './build/logger.ts';
-import { getBuildHelpText, parseBuildOptions } from './build/options.ts';
+import { parseBuildOptions, printBuildHelp } from './build/options.ts';
 import { buildPluginProject } from './build/plugin.ts';
 import type { BuildContext, BuildOptions, Project } from './build/types.ts';
 
@@ -96,11 +97,13 @@ async function runBuild(options: BuildOptions): Promise<void> {
 
 function watch(options: BuildOptions): void {
   const roots = ['src', 'util', '@types', 'tools'].map(name => path.join(rootDir, name)).filter(fs.existsSync);
-  let timer: NodeJS.Timeout | undefined;
+  let timer: ReturnType<typeof setTimeout> | undefined;
   let running = false;
   let queued = false;
+  let closing = false;
 
   const trigger = async (): Promise<void> => {
+    if (closing) return;
     if (running) {
       queued = true;
       return;
@@ -112,30 +115,56 @@ function watch(options: BuildOptions): void {
       console.error(error instanceof Error ? (error.stack ?? error.message) : error);
     } finally {
       running = false;
-      if (queued) {
+      if (queued && !closing) {
         queued = false;
         await trigger();
       }
     }
   };
 
-  const watchers = roots.map(root =>
-    fs.watch(root, { recursive: true }, () => {
-      clearTimeout(timer);
-      timer = setTimeout(() => void trigger(), 120);
-    }),
-  );
+  const watcher = chokidar.watch(roots, {
+    ignoreInitial: true,
+    awaitWriteFinish: { stabilityThreshold: 150, pollInterval: 50 },
+  });
+  const scheduleBuild = (): void => {
+    if (closing) return;
+    clearTimeout(timer);
+    timer = setTimeout(() => {
+      timer = undefined;
+      void trigger();
+    }, 120);
+  };
+  watcher
+    .on('all', event => {
+      if (event === 'add' || event === 'addDir' || event === 'change' || event === 'unlink' || event === 'unlinkDir') {
+        scheduleBuild();
+      }
+    })
+    .on('error', error => {
+      console.error('[build] Watcher error:', error);
+    });
+
+  const close = async (): Promise<void> => {
+    if (closing) return;
+    closing = true;
+    clearTimeout(timer);
+    await watcher.close();
+    process.exitCode = 0;
+  };
+
   console.info(`[build] Watching ${roots.map(root => path.relative(rootDir, root)).join(', ')}...`);
   process.once('SIGINT', () => {
-    for (const watcher of watchers) watcher.close();
-    process.exitCode = 0;
+    void close();
+  });
+  process.once('SIGTERM', () => {
+    void close();
   });
 }
 
 async function main(): Promise<void> {
   const options = parseBuildOptions(process.argv.slice(2));
   if (options.help) {
-    console.info(getBuildHelpText());
+    printBuildHelp();
     return;
   }
   await runBuild(options);
