@@ -76,11 +76,11 @@ function discoverPluginProjects(): Project[] {
     });
 }
 
-function assertNoNestedProjects(directories: string[], area: string): void {
+export function assertNoNestedProjects(directories: string[], area: string): void {
   const sorted = directories.map(value => path.normalize(value)).sort((a, b) => a.length - b.length);
   for (let index = 0; index < sorted.length; index += 1) {
     for (let nested = index + 1; nested < sorted.length; nested += 1) {
-      if (sorted[nested].startsWith(`${sorted[index]}${path.sep}`)) {
+      if (isSubPath(sorted[index], sorted[nested]) && sorted[index] !== sorted[nested]) {
         throw new Error(
           `[build] Nested ${area} projects are not supported: '${sorted[index]}' contains '${sorted[nested]}'.`,
         );
