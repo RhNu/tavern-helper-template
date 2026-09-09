@@ -1,21 +1,21 @@
 {
   "compilerOptions": {
     "types": ["node"],
-    "target": "ES2022",
-    "lib": ["ES2022"],
+    "target": "ESNext",
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
-    "moduleDetection": "auto",
+    "allowImportingTsExtensions": true,
+    "erasableSyntaxOnly": true,
+    "verbatimModuleSyntax": true,
     "strict": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "noImplicitReturns": true,
     "noFallthroughCasesInSwitch": true,
-    "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
     "skipLibCheck": true,
-    "noEmit": true,
-    "allowJs": false
+    "noEmit": true
   },
-  "include": ["src/plugins/**/*.ts", "src/plugins/**/*.d.ts"]
+  "include": ["tools/**/*.ts", "postcss.config.ts", "oxlint.config.ts"],
+  "exclude": ["tools/fixtures/**"]
 }
