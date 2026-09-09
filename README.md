@@ -101,20 +101,32 @@ import 'https://testingcf.jsdelivr.net/gh/StageDog/tavern_resource/dist/酒馆�
 
 - 自动打包 `src/scripts` 中的浏览器端项目到 `dist/scripts`, 并打包 `src/plugins` 中的服务端插件到
   `dist/plugins`, 再自动递增版本号从而让 jsdelivr 更快更新缓存.
-- 如果配置了 Cloudflare R2 所需的仓库 Secrets 和变量, 会以 `dist/scripts/` 为根目录同步浏览器端产物, 不会上传 `dist/plugins/`.
+- 如果配置了 S3 兼容对象存储所需的仓库 Secrets 和变量, 会以 `dist/scripts/` 为根目录同步浏览器端产物, 不会上传 `dist/plugins/`.
 
-启用 Cloudflare R2 同步时, 需要在仓库 `Settings -> Secrets and variables -> Actions` 中添加以下 Secrets:
+启用对象存储同步时, 需要在仓库 `Settings -> Secrets and variables -> Actions` 中添加以下 Secrets:
 
-- `CLOUDFLARE_R2_ENDPOINT`: R2 的 S3 API 端点, 例如 `https://<accountid>.r2.cloudflarestorage.com`
-- `CLOUDFLARE_R2_BUCKET`: 目标存储桶名称
-- `CLOUDFLARE_R2_ACCESS_KEY_ID`: R2 API Token 对应的 Access Key ID
-- `CLOUDFLARE_R2_SECRET_ACCESS_KEY`: R2 API Token 对应的 Secret Access Key
+- `S3_ACCESS_KEY_ID`: 对象存储的 Access Key ID
+- `S3_SECRET_ACCESS_KEY`: 对象存储的 Secret Access Key
 
-并添加以下仓库 Variable:
+以下配置项既可以添加为仓库 Secret, 也可以添加为仓库 Variable:
 
-- `CLOUDFLARE_R2_PREFIX`: R2 内的目标前缀, 例如 `my-resource/prod`
+- `S3_BUCKET`: 目标存储桶名称
+- `S3_PREFIX`: 存储桶内的目标前缀, 例如 `my-resource/prod`
+- `S3_REGION`: 对象存储使用的区域; Cloudflare R2 填写 `auto`, 其他服务按服务商要求填写
+- `S3_ENDPOINT`: 自定义 S3 API 端点. 使用 Amazon S3 默认端点时可以留空, 使用 R2 等 S3 兼容服务时填写服务商提供的端点
 
-未配置完整 R2 信息时, 工作流会跳过上传而继续完成构建.
+同名配置同时存在于 Secrets 和 Variables 时, 工作流优先使用 Secret. `S3_ACCESS_KEY_ID` 和 `S3_SECRET_ACCESS_KEY` 不会从 Variables 读取.
+
+例如, 使用 Cloudflare R2 时可以这样配置:
+
+- `S3_ENDPOINT`: `https://<accountid>.r2.cloudflarestorage.com`
+- `S3_BUCKET`: R2 存储桶名称
+- `S3_PREFIX`: `my-resource/prod`
+- `S3_REGION`: `auto`
+- `S3_ACCESS_KEY_ID`: R2 API Token 对应的 Access Key ID
+- `S3_SECRET_ACCESS_KEY`: R2 API Token 对应的 Secret Access Key
+
+未配置完整对象存储信息时, 工作流会跳过上传而继续完成构建.
 
 **`bump_deps.yaml`**
 
