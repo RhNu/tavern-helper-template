@@ -20,6 +20,7 @@
 - 前端界面任务: [agents/rules/前端界面.md](agents/rules/前端界面.md)
 - 脚本任务: [agents/rules/脚本.md](agents/rules/脚本.md)
 - 后端插件任务: [agents/rules/后端插件.md](agents/rules/后端插件.md)
+- 测试任务: [agents/rules/测试.md](agents/rules/测试.md)
 - MVU 变量: [agents/rules/mvu变量框架.md](agents/rules/mvu变量框架.md)
 - MVU 角色卡: [agents/rules/mvu角色卡.md](agents/rules/mvu角色卡.md)
 
