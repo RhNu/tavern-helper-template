@@ -50,6 +50,9 @@ git update-index --skip-worktree .vscode/launch.json
 
 当前自动构建的项目发现范围仍限定在 `src/**/index.{ts,tsx,js,jsx}`, 因此这些目录默认不会被自动打包到 `dist`.
 
+如需开发 SillyTavern 服务端插件, 使用 `src-plugins/<插件名>/index.ts` 目录约定, 并运行 `pnpm build:plugins` 生成
+`dist-plugins/<插件名>/index.cjs`. 具体的插件类型、检查和部署约定见 [后端插件开发规则](agents/rules/后端插件.md).
+
 #### 利用 jsdelivr 实现前端界面或脚本的自动更新
 
 由于你所制作的前端界面或脚本将被打包在 github 仓库中, 你将能用 jsdelivr 链接来访问它们, 而这个链接可以在前端界面或脚本中直接使用.
@@ -82,7 +85,22 @@ import 'https://testingcf.jsdelivr.net/gh/StageDog/tavern_resource/dist/酒馆�
 
 **`bundle.yaml`**
 
-- 自动打包 `src` 文件夹中的代码到 `dist` 文件夹中, 并自动递增版本号从而让 jsdelivr 更快更新缓存.
+- 自动打包 `src` 文件夹中的代码到 `dist` 文件夹, 并打包 `src-plugins` 中的服务端插件到
+  `dist-plugins`, 再自动递增版本号从而让 jsdelivr 更快更新缓存.
+- 如果配置了 Cloudflare R2 所需的仓库 Secrets 和变量, 还会将整个 `dist/` 目录同步到你指定的 R2 路径前缀下.
+
+启用 Cloudflare R2 同步时, 需要在仓库 `Settings -> Secrets and variables -> Actions` 中添加以下 Secrets:
+
+- `CLOUDFLARE_R2_ENDPOINT`: R2 的 S3 API 端点, 例如 `https://<accountid>.r2.cloudflarestorage.com`
+- `CLOUDFLARE_R2_BUCKET`: 目标存储桶名称
+- `CLOUDFLARE_R2_ACCESS_KEY_ID`: R2 API Token 对应的 Access Key ID
+- `CLOUDFLARE_R2_SECRET_ACCESS_KEY`: R2 API Token 对应的 Secret Access Key
+
+并添加以下仓库 Variable:
+
+- `CLOUDFLARE_R2_PREFIX`: R2 内的目标前缀, 例如 `my-resource/prod`
+
+未配置完整 R2 信息时, 工作流会跳过上传而继续完成构建.
 
 **`bump_deps.yaml`**
 

@@ -74,9 +74,31 @@ export default [
       'import-x/no-nodejs-modules': 'off',
     },
   },
+  {
+    // 后端插件运行在 SillyTavern 的 Node 进程中, 使用 Node 全局对象与内置模块
+    files: ['src-plugins/**/*.{js,ts}'],
+    languageOptions: {
+      globals: {
+        ...globals.node,
+      },
+    },
+    rules: {
+      'import-x/no-nodejs-modules': 'off',
+      'import-x/no-unresolved': [2, { ignore: ['^http', '^node:'] }],
+    },
+  },
+  {
+    // zod-bridge 通过空接口把 Zod 类型合并到全局命名空间, 这是有意的声明合并。
+    files: ['zod-bridge.d.ts'],
+    rules: {
+      '@typescript-eslint/no-empty-object-type': 'off',
+    },
+  },
   eslintConfigPrettier,
   globalIgnores([
     'dist/**',
+    'dist-plugins/**',
+    '.cache/**',
     'node_modules/**',
     'examples/**',
     'eslint.config.mjs',

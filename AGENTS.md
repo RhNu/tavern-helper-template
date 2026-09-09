@@ -2,6 +2,8 @@
 
 本仓库所有与 Agent 相关的约束、上下文和操作指南，统一收束在 `agents` 目录。
 
+浏览器端进行生产构建时使用 `pnpm build`；服务端插件使用 `pnpm build:plugins`。
+
 ## 1. 总索引
 
 - [agents/INDEX.md](agents/INDEX.md)
@@ -16,6 +18,7 @@
 
 - 前端界面任务: [agents/rules/前端界面.md](agents/rules/前端界面.md)
 - 脚本任务: [agents/rules/脚本.md](agents/rules/脚本.md)
+- 后端插件任务: [agents/rules/后端插件.md](agents/rules/后端插件.md)
 - MVU 变量: [agents/rules/mvu变量框架.md](agents/rules/mvu变量框架.md)
 - MVU 角色卡: [agents/rules/mvu角色卡.md](agents/rules/mvu角色卡.md)
 
