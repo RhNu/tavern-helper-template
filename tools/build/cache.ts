@@ -1,11 +1,25 @@
 import { createHash } from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
+import { z } from 'zod';
 import { buildCacheDir, buildManifestPath, buildStagingDir, distDir, fromPosix, rootDir, toPosix } from './config.ts';
 import { collectFiles, outputDirRelative, removeEmptyDirectories } from './discovery.ts';
 import type { BuildManifest, Logger, Project } from './types.ts';
 
 const manifestVersion = 2;
+const manifestEntrySchema = z.object({
+  projectKey: z.string(),
+  kind: z.enum(['frontend', 'script', 'plugin']),
+  mode: z.enum(['production', 'development']),
+  inputHash: z.string(),
+  outputDir: z.string(),
+  outputFiles: z.array(z.string()),
+  builtAt: z.string(),
+});
+const manifestSchema = z.object({
+  version: z.literal(manifestVersion),
+  projects: z.record(z.string(), manifestEntrySchema),
+});
 
 export function emptyManifest(): BuildManifest {
   return { version: manifestVersion, projects: {} };
@@ -17,11 +31,23 @@ export function clearBuildCache(): void {
 
 export function readManifest(): BuildManifest {
   if (!fs.existsSync(buildManifestPath)) return emptyManifest();
-  const parsed = JSON.parse(fs.readFileSync(buildManifestPath, 'utf8')) as BuildManifest;
-  if (parsed.version !== manifestVersion || !parsed.projects) {
-    throw new Error(`[build] Invalid cache manifest. Run with --clear-cache.`);
+  return parseManifest(fs.readFileSync(buildManifestPath, 'utf8'));
+}
+
+export function parseManifest(content: string): BuildManifest {
+  let json: unknown;
+  try {
+    json = JSON.parse(content);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    throw new Error(`[build] Invalid cache manifest. Run with --clear-cache. (${message})`);
   }
-  return parsed;
+
+  const parsed = manifestSchema.safeParse(json);
+  if (!parsed.success) {
+    throw new Error(`[build] Invalid cache manifest. Run with --clear-cache.\n${z.prettifyError(parsed.error)}`);
+  }
+  return parsed.data;
 }
 
 export function writeManifest(manifest: BuildManifest): void {
