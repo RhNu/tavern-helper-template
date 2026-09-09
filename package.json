@@ -54,6 +54,7 @@
     "@types/toastr": "^2.1.44",
     "@vitejs/plugin-react": "^6.1.1",
     "autoprefixer": "^10.5.5",
+    "cac": "^7.0.0",
     "eslint-plugin-better-tailwindcss": "^4.7.0",
     "oxfmt": "0.67.0",
     "oxlint": "1.82.0",

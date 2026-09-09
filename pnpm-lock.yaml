@@ -203,6 +203,9 @@ importers:
       autoprefixer:
         specifier: ^10.5.5
         version: 10.5.5(postcss@8.5.28)
+      cac:
+        specifier: ^7.0.0
+        version: 7.0.0
       eslint-plugin-better-tailwindcss:
         specifier: ^4.7.0
         version: 4.7.0(eslint@10.10.0(jiti@2.7.0)(supports-color@8.1.1))(oxlint@1.82.0)(tailwindcss@4.3.3)(typescript@7.0.2)

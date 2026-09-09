@@ -1,34 +1,26 @@
+import { cac } from 'cac';
 import type { BuildKind, BuildMode, BuildOptions } from './types.ts';
 
 const modes = new Set<BuildMode>(['production', 'development']);
 const kinds = new Set<BuildKind>(['scripts', 'plugins']);
 
-const helpText = `
-Usage:
-  node tools/build.ts [mode]
-  node tools/build.ts [options]
+const cliName = 'node tools/build.ts';
 
-Options:
-  --mode <production|development>  Set build mode.
-  --kind <scripts|plugins>          Limit project kind. Repeatable.
-  --target <dir>                    Build a project directory. Repeatable.
-  --watch                           Watch source directories and rebuild.
-  --verbose                         Print detailed build logs.
-  --no-cache                        Disable cache reads and writes.
-  --clear-cache                     Remove .cache/build before building.
-  --help                            Show this help text.
-
-Examples:
-  node tools/build.ts --mode production
-  node tools/build.ts development --kind scripts
-  node tools/build.ts --target scripts/Notifier --target plugins/example
-  node tools/build.ts --watch --mode development
-`.trim();
-
-function valueAfter(argv: string[], index: number, option: string): string {
-  const value = argv[index + 1];
-  if (!value || value.startsWith('--')) throw new Error(`[build] Missing value for '${option}'.`);
-  return value;
+function createBuildCli() {
+  return cac(cliName)
+    .usage('[mode] [options]')
+    .option('--mode <mode>', 'Set build mode.')
+    .option('--kind <kind>', 'Limit project kind. Repeatable.')
+    .option('--target <dir>', 'Build a project directory. Repeatable.')
+    .option('--watch', 'Watch source directories and rebuild.')
+    .option('--verbose', 'Print detailed build logs.')
+    .option('--no-cache', 'Disable cache reads and writes.')
+    .option('--clear-cache', 'Remove .cache/build before building.')
+    .option('-h, --help', 'Show this help text.')
+    .example('node tools/build.ts --mode production')
+    .example('node tools/build.ts development --kind scripts')
+    .example('node tools/build.ts --target scripts/Notifier --target plugins/example')
+    .example('node tools/build.ts --watch --mode development');
 }
 
 function parseMode(value: string): BuildMode {
@@ -41,45 +33,53 @@ function parseKind(value: string): BuildKind {
   return value as BuildKind;
 }
 
-export function parseBuildOptions(argv: string[]): BuildOptions {
-  const options: BuildOptions = {
-    mode: 'production',
-    kinds: [],
-    targets: [],
-    verbose: false,
-    useCache: true,
-    clearCache: false,
-    watch: false,
-    help: false,
-  };
-  let positionalModeConsumed = false;
+function valuesOf(value: unknown): string[] {
+  if (value === undefined) return [];
+  return (Array.isArray(value) ? value : [value]).map(String);
+}
 
-  for (let index = 0; index < argv.length; index += 1) {
-    const argument = argv[index];
-    if (argument === '--help' || argument === '-h') options.help = true;
-    else if (argument === '--verbose') options.verbose = true;
-    else if (argument === '--no-cache') options.useCache = false;
-    else if (argument === '--clear-cache') options.clearCache = true;
-    else if (argument === '--watch') options.watch = true;
-    else if (argument.startsWith('--mode=')) options.mode = parseMode(argument.slice(7));
-    else if (argument === '--mode') options.mode = parseMode(valueAfter(argv, index++, '--mode'));
-    else if (argument.startsWith('--kind=')) options.kinds.push(parseKind(argument.slice(7)));
-    else if (argument === '--kind') options.kinds.push(parseKind(valueAfter(argv, index++, '--kind')));
-    else if (argument.startsWith('--target=')) options.targets.push(argument.slice(9));
-    else if (argument === '--target') options.targets.push(valueAfter(argv, index++, '--target'));
-    else if (argument.startsWith('--')) throw new Error(`[build] Unknown option '${argument}'.`);
-    else if (!positionalModeConsumed && modes.has(argument as BuildMode)) {
-      options.mode = parseMode(argument);
-      positionalModeConsumed = true;
-    } else throw new Error(`[build] Unexpected positional argument '${argument}'.`);
+function validateCli(cli: ReturnType<typeof createBuildCli>, positionalArguments: readonly string[]): void {
+  try {
+    cli.globalCommand.checkUnknownOptions();
+    cli.globalCommand.checkOptionValue();
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    throw new Error(`[build] ${message}.`);
   }
 
-  options.kinds = [...new Set(options.kinds)];
-  options.targets = [...new Set(options.targets.filter(Boolean))];
+  if (positionalArguments.length > 1) {
+    throw new Error(`[build] Unexpected positional argument '${positionalArguments[1]}'.`);
+  }
+}
+
+export function parseBuildOptions(argv: string[]): BuildOptions {
+  const cli = createBuildCli();
+  const parsed = cli.parse(['node', cliName, ...argv], { run: false });
+  const positionalArguments = [...parsed.args, ...valuesOf(parsed.options['--'])];
+  validateCli(cli, positionalArguments);
+
+  const positionalMode = positionalArguments[0];
+  if (positionalMode !== undefined && !modes.has(positionalMode as BuildMode)) {
+    throw new Error(`[build] Unexpected positional argument '${positionalMode}'.`);
+  }
+
+  const mode = parseMode(valuesOf(parsed.options.mode).at(-1) ?? positionalMode ?? 'production');
+  const kinds = valuesOf(parsed.options.kind).map(parseKind);
+  const targets = valuesOf(parsed.options.target).filter(Boolean);
+  const options: BuildOptions = {
+    mode,
+    kinds: [...new Set(kinds)],
+    targets: [...new Set(targets)],
+    verbose: parsed.options.verbose === true,
+    useCache: parsed.options.cache !== false,
+    clearCache: parsed.options.clearCache === true,
+    watch: parsed.options.watch === true,
+    help: parsed.options.help === true,
+  };
   if (options.watch && options.mode === 'production') options.mode = 'development';
   return options;
 }
 
-export function getBuildHelpText(): string {
-  return helpText;
+export function printBuildHelp(): void {
+  createBuildCli().outputHelp();
 }
