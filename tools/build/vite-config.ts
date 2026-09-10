@@ -2,6 +2,7 @@ import path from 'node:path';
 import { rootDir, scriptsSrcDir, toPosix } from './config.ts';
 
 export const resolveAlias = [
+  { find: /^@\//, replacement: `${toPosix(scriptsSrcDir)}/` },
   { find: /^@util$/, replacement: toPosix(path.join(rootDir, 'util')) },
   { find: /^@util\//, replacement: `${toPosix(path.join(rootDir, 'util'))}/` },
   { find: /^@scripts$/, replacement: toPosix(scriptsSrcDir) },

@@ -15,7 +15,10 @@ const externalCdnMapping: Record<string, string> = {
   zod: 'https://testingcf.jsdelivr.net/npm/zod/+esm',
 };
 
-const inlinePackageHints = ['react', 'pixi'];
+// React DOM's CommonJS build loads scheduler with require(). If scheduler is
+// externalized, Rolldown must leave that require() in the ESM output, which is
+// not executable in the browser. Keep the whole React runtime in the bundle.
+const inlinePackageHints = ['react', 'pixi', 'scheduler'];
 const reactRuntimePackages = ['react', 'react-dom'];
 const inlineDecisionCache = new Map<string, boolean>();
 
@@ -23,6 +26,7 @@ export function isLocalOrAliasedRequest(request: string): boolean {
   return (
     request.startsWith('.') ||
     request.startsWith('/') ||
+    request.startsWith('@/') ||
     request.startsWith('@scripts/') ||
     request.startsWith('@util/') ||
     request.startsWith('http://') ||

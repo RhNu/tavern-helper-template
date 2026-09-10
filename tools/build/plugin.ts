@@ -7,8 +7,11 @@ import type { BuildContext, Project } from './types.ts';
 function bundledDependencies(): string[] {
   const packageJson = JSON.parse(fs.readFileSync(path.join(rootDir, 'package.json'), 'utf8')) as {
     dependencies?: Record<string, string>;
+    devDependencies?: Record<string, string>;
   };
-  return Object.keys(packageJson.dependencies ?? {}).filter(name => name !== 'canvas');
+  return [
+    ...new Set([...Object.keys(packageJson.dependencies ?? {}), ...Object.keys(packageJson.devDependencies ?? {})]),
+  ].filter(name => name !== 'canvas');
 }
 
 export async function buildPluginProject(project: Project, context: BuildContext): Promise<void> {
