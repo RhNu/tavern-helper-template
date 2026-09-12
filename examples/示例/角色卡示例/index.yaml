@@ -305,7 +305,7 @@
         启用: true
         类型: 脚本
         内容: |-
-          import 'https://testingcf.jsdelivr.net/gh/StageDog/tavern_resource/dist/酒馆助手/自动更新角色卡/index.js';
+          import 'https://testingcf.jsdelivr.net/gh/StageDog/tavern_resource/dist/scripts/酒馆助手/自动更新角色卡/index.js';
         数据:
           角色卡名称: 呕吐内心的少女
           角色卡链接: https://testingcf.jsdelivr.net/gh/StageDog/tavern_helper_template/示例/角色卡示例/角色卡示例.png

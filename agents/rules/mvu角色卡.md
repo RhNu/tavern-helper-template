@@ -8,7 +8,7 @@ MVU 角色卡文件夹提供了一种存储酒馆角色卡内容的文件结构:
 - `角色卡/schema.ts` 中是用 zod 4 库书写的角色卡 MVU 变量结构定义
   - 提供给脚本、前端界面导入使用
   - 会在 `pnpm build` 或 `pnpm watch` 时生成对应的 json schema 文件 `角色卡/schema.json`, 便于编写变量初始值文件 initvar.yaml `# yaml-language-server: $schema=schema文件路径`
-- `角色卡/界面/store.ts` 中是 pinia 预先写好的获取角色卡消息楼层 MVU 变量方式, 提供给所有前端界面导入使用
+- `角色卡/界面/store.ts` 中是 Zustand 预先写好的获取角色卡消息楼层 MVU 变量方式, 提供给所有前端界面导入使用
 
 当玩家要求编写 MVU 角色卡的脚本、前端界面时, 除了参考`初始模板/脚本`或`初始模板/前端界面`外, 你还应该参考`初始模板/角色卡`中的脚本和前端界面模板.
 
@@ -87,7 +87,7 @@ $(() => {
 
 MVU 角色卡可能会设置状态栏界面, 因此`初始模板/角色卡/新建为src文件夹中的文件夹/界面`中提供了状态栏模板.
 
-此外, 模板在 `util/mvu.ts` 中定义了 `defineMvuDataStore` 函数, 这是模板推荐的 Vue 访问 MVU 变量方式:
+此外, 模板在 `util/tavern-helper/state/mvu-store.ts` 中定义了 `defineMvuDataStore` 函数, 这是模板推荐的 React 访问 MVU 变量方式:
 
 ```ts
 function defineMvuDataStore<T extends z.ZodObject>(
@@ -102,7 +102,7 @@ function defineMvuDataStore<T extends z.ZodObject>(
 例如, `示例/角色卡示例示例/store.ts` 中定义了访问 `useDataStore` 函数:
 
 ```ts
-import { defineMvuDataStore } from '@util/mvu';
+import { defineMvuDataStore } from '@util/tavern-helper/state/mvu-store';
 export const useDataStore = defineMvuDataStore(Schema, { type: 'message', message_id: getCurrentMessageId() });
 ```
 
